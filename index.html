@@ -399,13 +399,52 @@ let lokaal = [];
 try { lokaal = JSON.parse(localStorage.getItem('dobbis-bonnen') || "[]"); } catch(e) {}
 function bewaarLokaal(){ try { localStorage.setItem('dobbis-bonnen', JSON.stringify(lokaal)); } catch(e) {} }
 let db = null, gedeeld = false;
+// --- Firebase (GitHub-versie): gedeelde opslag per geheime restaurantcode ---
+const FIREBASE = {
+  apiKey: "AIzaSyAoFWpX_teKZbEuqoxo0E__nypn1mym9HE",
+  authDomain: "restaurant-dobbis.firebaseapp.com",
+  projectId: "restaurant-dobbis",
+  storageBucket: "restaurant-dobbis.firebasestorage.app",
+  messagingSenderId: "25174848443",
+  appId: "1:25174848443:web:cde4c8e479cffe311c4a9e"
+};
+function restaurantCode(){
+  const m = location.hash.match(/code=([A-Za-z0-9_-]{12,64})/);
+  if (m){ try { localStorage.setItem('dobbis-code', m[1]); } catch(e) {} return m[1]; }
+  try { return localStorage.getItem('dobbis-code'); } catch(e) { return null; }
+}
+async function maakFirebaseDB(code){
+  const V = "10.12.2";
+  const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+  const fs = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+  const store = fs.getFirestore(initializeApp(FIREBASE));
+  const basis = ["restaurants", code];
+  const docRef = p => fs.doc(store, ...basis, ...p.split("/"));
+  const wrapDoc = s => ({ id: s.id, exists: s.exists(), data: () => s.data() });
+  return {
+    collection(p){
+      let q = fs.collection(store, ...basis, p);
+      const api = {
+        orderBy(f, d){ q = fs.query(q, fs.orderBy(f, d)); return api; },
+        limit(n){ q = fs.query(q, fs.limit(n)); return api; },
+        onSnapshot(next, err){ return fs.onSnapshot(q, next, err); },
+        doc(id){ const r = fs.doc(store, ...basis, p, id); return { set: d => fs.setDoc(r, d), delete: () => fs.deleteDoc(r) }; }
+      };
+      return api;
+    },
+    doc(p){
+      const r = docRef(p);
+      return { set: d => fs.setDoc(r, d), onSnapshot: (next, err) => fs.onSnapshot(r, s => next(wrapDoc(s)), err) };
+    }
+  };
+}
 const volgendNr = () => bonnen.reduce((m, b) => Math.max(m, b.nr || 0), 0) + 1;
 let bonNr = 1;
 function status(t){ $('status').textContent = t; }
 function lokaalModus(){
   if (gedeeld) return;
   bonnen = lokaal.map((b, i) => ({...b, id: b.id || ("l" + b.nr + "-" + i)}));
-  status("📱 alleen op dit apparaat");
+  status(restaurantCode() ? "📱 alleen op dit apparaat (geen verbinding)" : "📱 alleen op dit apparaat (geen restaurantcode)");
   bonNr = volgendNr(); prikbord();
 }
 async function bewaarBon(b){
@@ -420,7 +459,9 @@ async function verwijderBon(b){
 }
 (async () => {
   const wacht = setTimeout(() => { if (!gedeeld) lokaalModus(); }, 10000);
-  try { db = window.claude && await window.claude.use("db"); } catch(e) { db = null; }
+  const code = restaurantCode();
+  if (!code){ clearTimeout(wacht); lokaalModus(); return; }
+  try { db = await maakFirebaseDB(code); } catch(e) { db = null; }
   if (!db){ clearTimeout(wacht); lokaalModus(); return; }
   db.doc("instellingen/beschikbaar").onSnapshot(d => {
     if (d.exists && Array.isArray(d.data().niet)){ nietBeschikbaar = new Set(d.data().niet); tekenBeschikbaar(); }
@@ -429,7 +470,7 @@ async function verwijderBon(b){
     clearTimeout(wacht);
     gedeeld = true;
     bonnen = snap.docs.map(d => ({...d.data(), id: d.id}));
-    status(snap.metadata.fromCache ? "🔄 verbinden…" : "🔄 gedeeld met al je apparaten");
+    status(snap.metadata.fromCache ? "🔄 verbinden…" : "🔄 gedeeld met alle apparaten");
     bonNr = Math.max(bonNr, volgendNr());
     prikbord();
     // oude bonnetjes van dit apparaat één keer meenemen naar het gedeelde prikbord
