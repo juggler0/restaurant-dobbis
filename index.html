@@ -80,6 +80,7 @@
   .chip button{border:none; background:var(--zand); border-radius:50%; width:22px; height:22px; cursor:pointer; font-weight:800; line-height:1}
   .leeg{opacity:.75; font-size:15px}
   .bewerk{background:var(--geel); color:var(--donker); border-radius:10px; padding:3px 6px 3px 10px; font-weight:800; font-size:15px; display:inline-flex; align-items:center; gap:6px}
+  .bewerk[hidden]{display:none}
   .bewerk button{border:none; background:var(--donker); color:#fff; border-radius:8px; padding:2px 8px; cursor:pointer; font:inherit; font-size:13px}
   .bon .knoppen{flex-wrap:wrap}
   .knop{font:inherit; font-weight:800; font-size:17px; border:none; border-radius:12px; padding:9px 14px; cursor:pointer}
@@ -122,6 +123,28 @@
   .briefje ul{margin:6px 0 0; padding-left:16px}
   .briefje li{margin:2px 0}
   .briefje li small{display:block; color:#555; font-size:13px}
+  .mand{display:flex; flex-direction:column; align-items:center; margin:18px 0 0 auto; width:84px; background:none; border:none; cursor:pointer; position:relative; padding:0}
+  .mand svg{width:70px; height:auto; filter:drop-shadow(0 4px 6px rgba(0,0,0,.35)); overflow:visible}
+  .mand .deksel{transition:transform .2s; transform-origin:12px 18px}
+  .mand.open .deksel, .mand:hover .deksel{transform:rotate(-24deg) translate(-2px,-6px)}
+  .mand.open svg{transform:scale(1.15)}
+  .mand .propjes{display:none}
+  .mand.vol .propjes{display:inline}
+  .mandTel{position:absolute; top:-4px; right:0; background:#c0392b; color:#fff; border-radius:12px; min-width:24px; padding:1px 6px; font-weight:800; font-size:14px; border:2px solid #fff}
+  .mandTel.nul{display:none}
+  .mandvak{width:100%; max-width:560px; background:var(--papier); border:4px solid var(--choco); border-radius:20px; padding:18px 18px 16px; margin:auto 0}
+  .mandvak h3{font-family:'Gochi Hand',cursive; font-size:34px; font-weight:400; margin:0 0 10px; text-align:center}
+  #mandLijst{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; max-height:60vh; overflow:auto; padding:6px}
+  .prop{background:#fff; font-family:'Courier Prime',monospace; font-size:13px; padding:10px; border-radius:6px; box-shadow:1px 3px 6px rgba(0,0,0,.25);
+    background-image:linear-gradient(135deg, rgba(0,0,0,.05) 25%, transparent 25%, transparent 50%, rgba(0,0,0,.05) 50%, rgba(0,0,0,.05) 75%, transparent 75%); background-size:18px 18px; transform:rotate(-1.5deg)}
+  .prop:nth-child(even){transform:rotate(1.5deg)}
+  .prop b{display:block}
+  .prop .gast{font-family:'Nunito',sans-serif; font-weight:800; font-size:17px; display:block; margin:2px 0 6px}
+  .prop button{width:100%; font:inherit; font-family:'Nunito',sans-serif; font-weight:800; font-size:14px; border:none; border-radius:8px; padding:6px; cursor:pointer; background:var(--geel); color:var(--donker)}
+  .mandleeg{grid-column:1/-1; text-align:center; color:var(--choco); padding:14px}
+  .mandvak .knoppen{display:flex; gap:8px; margin-top:14px}
+  .mandvak .knoppen .knop{flex:1}
+  .mandvak .knop.nee{color:var(--donker); border-color:var(--donker)}
   .prikleeg{text-align:center; background:rgba(255,250,241,.85); border-radius:10px; padding:10px; font-size:14px}
   .sluitPrik{display:none}
 
@@ -137,6 +160,7 @@
     .pin:hover{filter:brightness(1.15)}
     .briefje.sleept{transform:rotate(0) scale(1.06) !important; box-shadow:6px 12px 20px rgba(0,0,0,.4); transition:none}
     .briefje.sleept .pin{cursor:grabbing}
+    .mand{position:absolute; right:18px; bottom:14px; margin:0; z-index:10000}
     .prikleeg{position:absolute; left:50%; top:30%; transform:translateX(-50%); width:80%}
   }
   /* televisie links van het menu op hele brede schermen */
@@ -262,6 +286,15 @@
     <h2>📌 Prikbord</h2>
     <div class="status" id="status">bonnetjes laden…</div>
     <div id="briefjes"></div>
+    <button class="mand" id="mand" title="Vuilnismand – tik om te openen">
+      <svg viewBox="0 0 80 90" aria-hidden="true">
+        <g class="deksel"><rect x="8" y="10" width="64" height="9" rx="3" fill="#8e9aa3" stroke="#4d5960" stroke-width="2"/><rect x="31" y="3" width="18" height="8" rx="3" fill="none" stroke="#4d5960" stroke-width="3"/></g>
+        <path d="M13 22 L19 84 Q19.5 87 23 87 L57 87 Q60.5 87 61 84 L67 22 Z" fill="#b3bec6" stroke="#4d5960" stroke-width="2"/>
+        <path d="M27 30 L29.5 80 M40 30 V80 M53 30 L50.5 80" stroke="#7f8b93" stroke-width="3" stroke-linecap="round"/>
+        <g class="propjes"><circle cx="30" cy="20" r="7" fill="#fff" stroke="#bbb"/><circle cx="44" cy="17" r="8" fill="#fffbe9" stroke="#bbb"/><circle cx="54" cy="21" r="6" fill="#fff" stroke="#bbb"/></g>
+      </svg>
+      <span class="mandTel" id="mandTel">0</span>
+    </button>
   </aside>
 </div>
 
@@ -311,6 +344,17 @@
       <button class="knop nee" id="haalWeg">🗑️ Eraf halen</button>
       <button class="knop ja" id="pasAan">✏️ Aanpassen</button>
       <button class="knop ja" id="kijkSluit">Sluiten</button>
+    </div>
+  </div>
+</section>
+
+<section class="scherm" id="mandScherm">
+  <div class="mandvak">
+    <h3>🗑️ Vuilnismand</h3>
+    <div id="mandLijst"></div>
+    <div class="knoppen">
+      <button class="knop nee" id="mandLeeg">Mand legen</button>
+      <button class="knop ja" id="mandSluit">Sluiten</button>
     </div>
   </div>
 </section>
@@ -684,7 +728,7 @@ $('bestel').onclick = () => {
   $('bonLijst').innerHTML = regelsHtml(regelsVan(bestelling));
   $('voor').classList.remove('fout'); $('tafel').classList.remove('fout');
   if (!$('tafel').value.trim()){
-    const bezet = new Set(bonnen.map(b => String(b.tafel).trim()));
+    const bezet = new Set(bonnen.filter(b => !b.mand).map(b => String(b.tafel).trim()));
     let n = 1; while (bezet.has(String(n))) n++;
     $('tafel').value = n;
   }
@@ -726,13 +770,18 @@ function maakSleepbaar(k, pin, b, p){
     sleept = true; k.classList.add('sleept'); k.style.zIndex = 9999;
     const start = {x:e.clientX, y:e.clientY, l:k.offsetLeft, t:k.offsetTop};
     const maxL = () => Math.max(0, p.clientWidth - k.offsetWidth), maxT = () => Math.max(0, p.clientHeight - k.offsetHeight);
+    const mandEl = $('mand');
+    const boven = ev => { const r = mandEl.getBoundingClientRect(); return ev.clientX > r.left - 25 && ev.clientX < r.right + 25 && ev.clientY > r.top - 25 && ev.clientY < r.bottom + 25; };
+    let laatste = null;
     const beweeg = ev => {
+      laatste = ev; mandEl.classList.toggle('open', boven(ev));
       k.style.left = Math.min(maxL(), Math.max(0, start.l + ev.clientX - start.x)) + "px";
       k.style.top = Math.min(maxT(), Math.max(0, start.t + ev.clientY - start.y)) + "px";
     };
     const los = () => {
       pin.removeEventListener('pointermove', beweeg); pin.removeEventListener('pointerup', los); pin.removeEventListener('pointercancel', los);
-      sleept = false; k.classList.remove('sleept');
+      sleept = false; k.classList.remove('sleept'); mandEl.classList.remove('open');
+      if (laatste && boven(laatste)){ k.remove(); naarMand(b); if (wachtRender){ wachtRender = false; } prikbord(); return; }
       b.x = maxL() ? Math.round(k.offsetLeft / maxL() * 1000) / 1000 : 0;
       b.y = maxT() ? Math.round(k.offsetTop / maxT() * 1000) / 1000 : 0;
       b.z = Date.now();
@@ -764,12 +813,16 @@ function plaatsVrij(p, kaarten){
 }
 function prikbord(){
   if (sleept){ wachtRender = true; return; }
-  $('prikTel').textContent = bonnen.length;
+  const zichtbaar = bonnen.filter(b => !b.mand), inMand = bonnen.filter(b => b.mand);
+  $('prikTel').textContent = zichtbaar.length;
+  $('mandTel').textContent = inMand.length; $('mandTel').classList.toggle('nul', !inMand.length);
+  $('mand').classList.toggle('vol', inMand.length > 0);
+  if ($('mandScherm').classList.contains('open')) tekenMand();
   const p = $('briefjes');
-  if (!bonnen.length){ p.innerHTML = '<div class="prikleeg">Nog geen bonnetjes.<br>Na het bestellen hangen ze hier!</div>'; return; }
+  if (!zichtbaar.length){ p.innerHTML = '<div class="prikleeg">Nog geen bonnetjes.<br>Na het bestellen hangen ze hier!</div>'; return; }
   p.innerHTML = "";
   const kaarten = [];
-  [...bonnen].reverse().forEach(b => {
+  [...zichtbaar].reverse().forEach(b => {
     const k = document.createElement('button'); k.className = 'briefje';
     const aantal = (b.regels || []).length;
     const items = (b.regels || []).map(x => `<li>${esc(x.t)}${(x.op || []).length ? `<small>+ ${x.op.map(esc).join(", ")}</small>` : ""}</li>`).join("");
@@ -808,7 +861,47 @@ function kijk(b){
   $('kijkScherm').classList.add('open');
 }
 $('kijkSluit').onclick = () => $('kijkScherm').classList.remove('open');
-$('haalWeg').onclick = () => { verwijderBon(open); $('kijkScherm').classList.remove('open'); };
+$('haalWeg').onclick = () => { naarMand(open); $('kijkScherm').classList.remove('open'); };
+$('haalWeg').textContent = "🗑️ In de vuilnismand";
+
+// vuilnismand
+function naarMand(b){
+  const nieuw = {...b, mand:true}; delete nieuw.x; delete nieuw.y;
+  const i = bonnen.indexOf(b); if (i >= 0) bonnen[i] = nieuw;
+  bewaarBon(nieuw); prikbord();
+  hint(`Bon ${nr3(b.nr)} ligt in de vuilnismand 🗑️`);
+}
+function uitMand(b){
+  const nieuw = {...b, mand:false, z:Date.now()};
+  const i = bonnen.indexOf(b); if (i >= 0) bonnen[i] = nieuw;
+  bewaarBon(nieuw); prikbord();
+  hint(`Bon ${nr3(b.nr)} hangt weer op het prikbord 📌`);
+}
+let legenZeker = false;
+function tekenMand(){
+  const l = $('mandLijst'), inMand = bonnen.filter(b => b.mand);
+  if (!inMand.length){ l.innerHTML = '<div class="mandleeg">De vuilnismand is leeg.</div>'; return; }
+  l.innerHTML = "";
+  inMand.forEach(b => {
+    const d = document.createElement('div'); d.className = 'prop';
+    const items = (b.regels || []).map(x => esc(x.t)).join(", ");
+    d.innerHTML = `<b>Bon ${nr3(b.nr)} · Tafel ${esc(b.tafel)}</b><span class="gast">${esc(b.voor)}</span><div style="margin-bottom:8px">${items}</div>`;
+    const k = document.createElement('button'); k.textContent = "📌 Terughangen";
+    k.onclick = () => uitMand(b);
+    d.appendChild(k); l.appendChild(d);
+  });
+}
+$('mand').onclick = () => { legenZeker = false; $('mandLeeg').textContent = "Mand legen"; tekenMand(); $('mandScherm').classList.add('open'); };
+$('mandSluit').onclick = () => $('mandScherm').classList.remove('open');
+$('mandLeeg').onclick = async () => {
+  const inMand = bonnen.filter(b => b.mand);
+  if (!inMand.length) return;
+  if (!legenZeker){ legenZeker = true; $('mandLeeg').textContent = "Zeker weten? Tik nog een keer"; return; }
+  legenZeker = false; $('mandLeeg').textContent = "Mand legen";
+  for (const b of inMand) await verwijderBon(b);
+  if (!gedeeld){ bonnen = bonnen.filter(b => !b.mand); prikbord(); }
+  hint("De vuilnismand is geleegd 🧹");
+};
 $('prikKnop').onclick = () => $('prikbord').scrollIntoView({behavior:'smooth', block:'start'});
 
 // woorden altijd in het vakje laten passen
