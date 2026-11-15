@@ -58,6 +58,18 @@
   .ikoon svg{width:36px; height:36px}
   .ikoon small{position:absolute; right:-4px; bottom:-4px; font-size:17px}
   button.item.tik{animation:tik .35s}
+  .item.eigen{touch-action:none}
+  .letter{width:34px; height:34px; border-radius:50%; color:#fff; font-weight:800; font-size:20px; display:flex; align-items:center; justify-content:center; box-shadow:inset 0 -3px 0 rgba(0,0,0,.15)}
+  .item.nieuw{font-size:18px; display:flex; align-items:center; gap:10px; background:transparent; border:3px dashed var(--karamel); border-radius:14px; padding:10px 12px; cursor:text; color:var(--karamel); min-width:0}
+  .item.nieuw:hover{background:#fff}
+  .ikoon.plus{font-size:26px; font-weight:800; color:var(--karamel)}
+  .item.nieuw input{flex:1; min-width:0; font:inherit; font-size:17px; border:none; border-bottom:2px solid var(--karamel); background:transparent; outline:none; color:var(--donker)}
+  .item.weg{opacity:.3}
+  .spook{position:fixed; z-index:30000; pointer-events:none; width:170px; transform:rotate(-4deg); box-shadow:0 10px 20px rgba(0,0,0,.3)}
+  .lijst.doel{outline:4px dashed var(--karamel); outline-offset:6px; border-radius:12px; background:rgba(242,193,78,.15)}
+  .menuPrul{position:fixed; left:50%; top:16px; transform:translate(-50%,-150%); z-index:25000; background:#c0392b; color:#fff; font-weight:800; padding:14px 24px; border-radius:16px; box-shadow:0 8px 20px rgba(0,0,0,.3); transition:transform .2s}
+  .menuPrul.zicht{transform:translate(-50%,0)}
+  .menuPrul.open{background:#8e1f14; transform:translate(-50%,0) scale(1.1)}
   button.item.op .ikoon, button.item.op .naam{opacity:.4}
   button.item.op .naam{text-decoration:line-through}
   .schakel{position:absolute; top:-11px; right:-11px; width:32px; height:32px; padding:3px; cursor:pointer; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)); z-index:2}
@@ -317,6 +329,7 @@
 </aside>
 
 <div class="hint" id="hint"></div>
+<div class="menuPrul" id="menuPrul">🗑️ Sleep hierheen om van het menu te halen</div>
 
 <section class="scherm" id="bonScherm">
   <div class="bon">
@@ -474,7 +487,11 @@ const menu = {
     {emo:"☕", naam:"Koffie"}, {svg:glas("#c7752a","ijs"), naam:"Ice tea"}
   ]
 };
-const ikoon = d => `<span class="ikoon">${d.svg || d.emo}${d.klein ? `<small>${d.klein}</small>` : ""}</span>`;
+const KLEUREN = ["#e8475e","#f4b633","#3fae49","#5d93c9","#9b7fd6","#e07b39","#2bb3a3","#d65db1"];
+const kleurVan = t => KLEUREN[[...t].reduce((a, c) => a + c.codePointAt(0), 0) % KLEUREN.length];
+const ikoon = d => d.eigen
+  ? `<span class="ikoon"><span class="letter" style="background:${kleurVan(d.naam)}">${esc([...d.naam][0].toUpperCase())}</span></span>`
+  : `<span class="ikoon">${d.svg || d.emo}${d.klein ? `<small>${d.klein}</small>` : ""}</span>`;
 const schoon = s => s.replace(/­/g, "");
 const $ = id => document.getElementById(id);
 
@@ -557,6 +574,13 @@ async function verwijderBon(b){
   if (!code){ clearTimeout(wacht); lokaalModus(); return; }
   try { db = await maakFirebaseDB(code); } catch(e) { db = null; }
   if (!db){ clearTimeout(wacht); lokaalModus(); return; }
+  db.doc("instellingen/eigen").onSnapshot(d => {
+    if (d.exists && Array.isArray(d.data().eigen)){
+      eigen = d.data().eigen.filter(x => x && typeof x.naam === "string" && STANDAARD[x.groep]).map(x => ({naam:x.naam.slice(0, 24), groep:x.groep}));
+      try { localStorage.setItem('dobbis-eigen', JSON.stringify(eigen)); } catch(e) {}
+      bouwLijsten();
+    }
+  }, () => {});
   db.doc("instellingen/beschikbaar").onSnapshot(d => {
     if (d.exists && Array.isArray(d.data().niet)){ nietBeschikbaar = new Set(d.data().niet); tekenBeschikbaar(); }
   }, () => {});
@@ -654,19 +678,110 @@ function kies(groep, d, b){
   teken();
 }
 
-document.querySelectorAll('.lijst').forEach(lijst => {
-  const groep = lijst.dataset.groep;
-  menu[groep].forEach(d => {
-    const b = document.createElement('button');
-    b.className = 'item';
-    b.innerHTML = `${ikoon(d)}<span class="naam">${d.naam}</span><span class="schakel" role="switch"></span>`;
-    b._d = d;
-    b.querySelector('.schakel').onclick = e => { e.stopPropagation(); wisselBeschikbaar(d); };
-    b.onclick = () => kies(groep, d, b);
-    knoppen[groep + ":" + d.naam] = b;
-    lijst.appendChild(b);
+// eigen producten: de kinderen maken zelf nieuwe knoppen
+const STANDAARD = {};
+Object.keys(menu).forEach(g => STANDAARD[g] = [...menu[g]]);
+let eigen = [];   // [{naam, groep}]
+try { const l = JSON.parse(localStorage.getItem('dobbis-eigen') || "[]"); if (Array.isArray(l)) eigen = l; } catch(e) {}
+const eigenObj = {};
+const eigenItem = naam => eigenObj[naam] || (eigenObj[naam] = {naam, eigen:true});
+function bouwLijsten(){
+  Object.keys(STANDAARD).forEach(g => menu[g] = [...STANDAARD[g], ...eigen.filter(x => x.groep === g).map(x => eigenItem(x.naam))]);
+  Object.keys(knoppen).forEach(k => delete knoppen[k]);
+  document.querySelectorAll('.lijst').forEach(lijst => {
+    const groep = lijst.dataset.groep;
+    lijst.innerHTML = "";
+    menu[groep].forEach(d => {
+      const b = document.createElement('button');
+      b.className = 'item' + (d.eigen ? ' eigen' : '');
+      b.innerHTML = `${ikoon(d)}<span class="naam">${d.eigen ? esc(d.naam) : d.naam}</span><span class="schakel" role="switch"></span>`;
+      b._d = d;
+      b.querySelector('.schakel').onclick = e => { e.stopPropagation(); wisselBeschikbaar(d); };
+      b.onclick = () => { if (b.dataset.gesleept){ delete b.dataset.gesleept; return; } kies(groep, d, b); };
+      if (d.eigen) maakVersleepbaar(b, d);
+      knoppen[groep + ":" + d.naam] = b;
+      lijst.appendChild(b);
+    });
+    if (groep === 'basis') lijst.appendChild(nieuwVakje());
   });
-});
+  tekenBeschikbaar(); pas(); teken();
+}
+function nieuwVakje(){
+  const v = document.createElement('div'); v.className = 'item nieuw'; v.tabIndex = 0;
+  v.innerHTML = '<span class="ikoon plus">＋</span><span class="naam">Nieuw…</span>';
+  const open = () => {
+    if (v.querySelector('input')) return;
+    v.innerHTML = '<span class="ikoon plus">＋</span><input maxlength="24" placeholder="Typ een woord" autocomplete="off">';
+    const inp = v.querySelector('input'); inp.focus();
+    inp.onkeydown = e => {
+      if (e.key === 'Enter'){ e.preventDefault(); voegToe(inp.value); }
+      if (e.key === 'Escape'){ bouwLijsten(); }
+    };
+    inp.onblur = () => setTimeout(() => { if (document.activeElement !== inp && !inp.value.trim()) bouwLijsten(); }, 150);
+  };
+  v.onclick = open; v.onkeydown = e => { if (e.key === 'Enter' && !v.querySelector('input')) open(); };
+  return v;
+}
+function bestaat(naam){
+  const n = naam.toLowerCase();
+  return Object.values(menu).some(l => l.some(d => schoon(d.naam).toLowerCase() === n));
+}
+function voegToe(tekst){
+  const naam = tekst.replace(/\s+/g, " ").trim().slice(0, 24);
+  if (!naam){ bouwLijsten(); return; }
+  if (bestaat(naam)){ hint(`${naam} staat al op het menu 🙂`); return; }
+  eigen.push({naam, groep:'basis'});
+  bewaarEigen(); bouwLijsten();
+  hint(`${naam} staat nu op het menu! ✨`);
+  const n = document.querySelector('.item.nieuw'); if (n) n.click();
+}
+async function bewaarEigen(){
+  try { localStorage.setItem('dobbis-eigen', JSON.stringify(eigen)); } catch(e) {}
+  if (db && gedeeld){ try { await db.doc("instellingen/eigen").set({eigen}); } catch(e){ hint("Opslaan lukte niet 😕"); } }
+}
+// eigen knoppen naar een andere categorie slepen, of naar de prullenbak
+function maakVersleepbaar(b, d){
+  b.addEventListener('pointerdown', e => {
+    if (e.target.closest('.schakel') || e.button > 0) return;
+    const start = {x:e.clientX, y:e.clientY};
+    let spook = null, doel = null;
+    const prul = $('menuPrul');
+    const onder = ev => { spook && (spook.style.display = 'none'); const el = document.elementFromPoint(ev.clientX, ev.clientY); spook && (spook.style.display = ''); return el; };
+    const beweeg = ev => {
+      if (!spook){
+        if (Math.hypot(ev.clientX - start.x, ev.clientY - start.y) < 8) return;
+        b.setPointerCapture(e.pointerId);
+        spook = b.cloneNode(true); spook.classList.add('spook'); document.body.appendChild(spook);
+        b.classList.add('weg'); prul.classList.add('zicht');
+      }
+      spook.style.left = (ev.clientX - 70) + "px"; spook.style.top = (ev.clientY - 28) + "px";
+      const el = onder(ev);
+      document.querySelectorAll('.lijst.doel').forEach(l => l.classList.remove('doel'));
+      doel = el && (el.closest('#menuPrul') || el.closest('.lijst'));
+      prul.classList.toggle('open', !!(doel && doel.id === 'menuPrul'));
+      if (doel && doel.classList.contains('lijst')) doel.classList.add('doel');
+    };
+    const los = () => {
+      b.removeEventListener('pointermove', beweeg); b.removeEventListener('pointerup', los); b.removeEventListener('pointercancel', los);
+      if (!spook) return;
+      b.dataset.gesleept = "1"; setTimeout(() => delete b.dataset.gesleept, 400);
+      spook.remove(); b.classList.remove('weg'); prul.classList.remove('zicht', 'open');
+      document.querySelectorAll('.lijst.doel').forEach(l => l.classList.remove('doel'));
+      const item = eigen.find(x => x.naam === d.naam); if (!item) return;
+      if (doel && doel.id === 'menuPrul'){
+        eigen = eigen.filter(x => x !== item);
+        if (huidig){ if (huidig.brood === d) huidig = null; else huidig.beleg = huidig.beleg.filter(x => x !== d); }
+        bewaarEigen(); bouwLijsten(); hint(`${d.naam} is van het menu gehaald 🗑️`);
+      } else if (doel && doel.dataset.groep && doel.dataset.groep !== item.groep){
+        item.groep = doel.dataset.groep;
+        if (huidig){ if (huidig.brood === d) huidig = null; else huidig.beleg = huidig.beleg.filter(x => x !== d); }
+        bewaarEigen(); bouwLijsten(); hint(`${d.naam} staat nu bij ${({basis:'Broodjes', hartig:'Beleg', zoet:'Zoet beleg', fruit:'Fruit', drinken:'Drinken'})[item.groep]} ✨`);
+      }
+    };
+    b.addEventListener('pointermove', beweeg); b.addEventListener('pointerup', los); b.addEventListener('pointercancel', los);
+  });
+}
+bouwLijsten();
 
 function broodjeKlaar(){
   if (!huidig) return;
