@@ -411,7 +411,8 @@ const FIREBASE = {
 function restaurantCode(){
   const m = location.hash.match(/code=([A-Za-z0-9_-]{12,64})/);
   if (m){ try { localStorage.setItem('dobbis-code', m[1]); } catch(e) {} return m[1]; }
-  try { return localStorage.getItem('dobbis-code'); } catch(e) { return null; }
+  try { const c = localStorage.getItem('dobbis-code'); if (c) return c; } catch(e) {}
+  return "dobbis-restaurant";
 }
 async function maakFirebaseDB(code){
   const V = "10.12.2";
