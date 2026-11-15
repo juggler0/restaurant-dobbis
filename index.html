@@ -79,6 +79,9 @@
   .chip{background:var(--papier); color:var(--donker); border-radius:20px; padding:3px 6px 3px 10px; font-size:14px; display:flex; align-items:center; gap:4px}
   .chip button{border:none; background:var(--zand); border-radius:50%; width:22px; height:22px; cursor:pointer; font-weight:800; line-height:1}
   .leeg{opacity:.75; font-size:15px}
+  .bewerk{background:var(--geel); color:var(--donker); border-radius:10px; padding:3px 6px 3px 10px; font-weight:800; font-size:15px; display:inline-flex; align-items:center; gap:6px}
+  .bewerk button{border:none; background:var(--donker); color:#fff; border-radius:8px; padding:2px 8px; cursor:pointer; font:inherit; font-size:13px}
+  .bon .knoppen{flex-wrap:wrap}
   .knop{font:inherit; font-weight:800; font-size:17px; border:none; border-radius:12px; padding:9px 14px; cursor:pointer}
   .knop.ja{background:var(--geel); color:var(--donker)}
   .knop.nee{background:transparent; color:var(--papier); border:2px solid var(--papier)}
@@ -137,10 +140,15 @@
     .prikleeg{position:absolute; left:50%; top:30%; transform:translateX(-50%); width:80%}
   }
   /* televisie links van het menu op hele brede schermen */
-  .tv{display:none}
+  .tv{display:block; max-width:460px; margin:0 auto 22px}
+  @media (min-width:1100px) and (max-width:1599px){
+    .tv{grid-column:1; grid-row:1; width:100%; margin:0 auto}
+    .kaart{grid-column:1; grid-row:2}
+    .prikbord{grid-column:2; grid-row:1 / span 2}
+  }
   @media (min-width:1600px){
     .pagina{max-width:none; grid-template-columns:minmax(260px,360px) minmax(0,760px) minmax(520px,1fr)}
-    .tv{display:block; position:sticky; top:20px}
+    .tv{display:block; position:sticky; top:20px; max-width:none; margin:0}
   }
   .tv-kast{background:linear-gradient(#3b3b40,#1f1f23); border-radius:22px; padding:16px 16px 10px; box-shadow:0 10px 24px rgba(0,0,0,.35)}
   .tv-scherm{background:#000; border-radius:10px; overflow:hidden; aspect-ratio:16/9; cursor:pointer; border:3px solid #111}
@@ -267,6 +275,7 @@
     </div>
     <div class="rij">
       <span class="label">🧾 Bestelling:</span>
+      <span id="bewerkLabel" class="bewerk" hidden></span>
       <div id="lijstje"><span class="leeg">nog niks</span></div>
       <button class="knop nee" id="prikKnop">📌 <span id="prikTel">0</span></button>
       <button class="knop ja" id="bestel">Bestellen!</button>
@@ -300,6 +309,7 @@
     <div id="kijkInhoud"></div>
     <div class="knoppen">
       <button class="knop nee" id="haalWeg">🗑️ Eraf halen</button>
+      <button class="knop ja" id="pasAan">✏️ Aanpassen</button>
       <button class="knop ja" id="kijkSluit">Sluiten</button>
     </div>
   </div>
@@ -487,7 +497,11 @@ async function bewaarBon(b){
   if (gedeeld){
     try { await db.collection("bonnen").doc(b.id).set(b); }
     catch(e){ hint("Bonnetje kon niet gedeeld worden 😕"); }
-  } else { lokaal.unshift(b); bewaarLokaal(); lokaalModus(); }
+  } else {
+    const i = lokaal.findIndex(x => (x.id && x.id === b.id) || (x.nr === b.nr && x.tijd === b.tijd));
+    i >= 0 ? lokaal[i] = b : lokaal.unshift(b);
+    bewaarLokaal(); lokaalModus();
+  }
 }
 async function verwijderBon(b){
   if (gedeeld){ try { await db.collection("bonnen").doc(b.id).delete(); } catch(e){ hint("Weghalen lukte niet 😕"); } }
@@ -626,12 +640,47 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 const regelsHtml = r => r.map(x => `<li><b>${esc(x.t)}</b>${(x.op || []).map(o => `<span class="op">+ ${esc(o)}</span>`).join("")}</li>`).join("");
 const nr3 = n => String(n).padStart(3, "0");
 
+// een bonnetje van het prikbord opnieuw openen om aan te passen
+let bewerk = null;
+function zoek(groepen, naam){
+  for (const g of groepen) { const d = menu[g].find(x => schoon(x.naam).toLowerCase() === naam.toLowerCase()); if (d) return d; }
+  return null;
+}
+function bonNaarBestelling(b){
+  const lijst = [];
+  (b.regels || []).forEach(r => {
+    const m = /^(\d+)× (.+)$/.exec(r.t);
+    if (m){ const d = zoek(['drinken','fruit','basis'], m[2]); if (d) lijst.push({soort:'tel', d, n:+m[1]}); return; }
+    const brood = zoek(['basis'], r.t); if (!brood) return;
+    lijst.push({soort:'broodje', brood, beleg:(r.op || []).map(o => zoek(['hartig','zoet'], o)).filter(Boolean)});
+  });
+  return lijst;
+}
+function toonBewerk(){
+  const l = $('bewerkLabel');
+  if (bewerk){
+    l.hidden = false;
+    l.innerHTML = `✏️ Bon ${nr3(bewerk.nr)} aanpassen <button id="stopBewerk">stoppen</button>`;
+    $('stopBewerk').onclick = () => { bewerk = null; bestelling = []; huidig = null; toonBewerk(); teken(); };
+    $('bestel').textContent = "Opslaan!";
+  } else { l.hidden = true; l.innerHTML = ""; $('bestel').textContent = "Bestellen!"; }
+}
+$('pasAan').onclick = () => {
+  bewerk = open; bestelling = bonNaarBestelling(open); huidig = null;
+  $('kijkScherm').classList.remove('open');
+  toonBewerk(); teken();
+  hint(`Bon ${nr3(bewerk.nr)}: voeg iets toe of haal iets weg en druk op Opslaan`);
+  document.querySelector('.kaart').scrollIntoView({behavior:'smooth', block:'start'});
+};
 $('bestel').onclick = () => {
   broodjeKlaar();
   bonNr = Math.max(bonNr, volgendNr());
   if (!bestelling.length){ hint("Je hebt nog niks gekozen 🙂"); return; }
   const nu = new Date();
-  $('bonKop').innerHTML = `Bon nr. ${nr3(bonNr)}<br>${nu.toLocaleDateString('nl-NL')} · ${nu.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}`;
+  if (bewerk){ $('voor').value = bewerk.voor; $('tafel').value = bewerk.tafel; }
+  $('bonKop').innerHTML = bewerk
+    ? `Bon nr. ${nr3(bewerk.nr)} (aangepast)<br>${esc(bewerk.datum)} · ${esc(bewerk.tijd)}`
+    : `Bon nr. ${nr3(bonNr)}<br>${nu.toLocaleDateString('nl-NL')} · ${nu.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}`;
   $('bonLijst').innerHTML = regelsHtml(regelsVan(bestelling));
   $('voor').classList.remove('fout'); $('tafel').classList.remove('fout');
   if (!$('tafel').value.trim()){
@@ -650,7 +699,9 @@ $('keuken').onclick = () => {
   if (!voor || !tafel){ (voor ? t : v).focus(); return; }
   const nu = new Date();
   bonNr = Math.max(bonNr, volgendNr());
-  bewaarBon({id:"b" + Date.now() + Math.random().toString(36).slice(2,6), nr:bonNr, voor, tafel, datum:nu.toLocaleDateString('nl-NL'), tijd:nu.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}), regels:regelsVan(bestelling)});
+  if (bewerk) bewaarBon({...bewerk, voor, tafel, regels:regelsVan(bestelling)});
+  else bewaarBon({id:"b" + Date.now() + Math.random().toString(36).slice(2,6), nr:bonNr, voor, tafel, datum:nu.toLocaleDateString('nl-NL'), tijd:nu.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}), regels:regelsVan(bestelling)});
+  bewerk = null; toonBewerk();
   $('klaarTekst').innerHTML = `<span>👨‍🍳</span>Komt eraan, ${esc(voor)}!<br>Tafel ${esc(tafel)}<br><small style="font-size:20px">Het bonnetje hangt op het prikbord 📌</small>`;
   $('bonScherm').classList.remove('open');
   $('klaarScherm').classList.add('open');
