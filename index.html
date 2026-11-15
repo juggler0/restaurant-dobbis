@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<!-- Emoji-plaatjes: Twemoji, © Twitter/X en anderen, CC-BY 4.0 (https://github.com/jdecked/twemoji) -->
 <title>Restaurant Dobbi's – Menu</title>
 <link href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Nunito:wght@600;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -108,8 +109,8 @@
   .briefje:nth-child(odd){transform:rotate(-2.5deg)}
   .briefje:nth-child(even){transform:rotate(2deg)}
   .briefje:hover{transform:rotate(0) scale(1.04)}
-  .briefje::before{
-    content:""; position:absolute; top:-7px; left:50%; width:18px; height:18px; margin-left:-9px; border-radius:50%;
+  .pin{
+    position:absolute; top:-9px; left:50%; width:22px; height:22px; margin-left:-11px; border-radius:50%; z-index:2;
     background:radial-gradient(circle at 35% 35%, #ff8a7a, #c0392b 60%, #7d1f15); box-shadow:1px 2px 3px rgba(0,0,0,.4);
   }
   .briefje b{display:block; font-size:14px}
@@ -122,14 +123,33 @@
   .sluitPrik{display:none}
 
   @media (min-width:1100px){
-    .pagina{max-width:1300px; display:grid; grid-template-columns:minmax(0,780px) minmax(320px,1fr); gap:24px; align-items:start}
-    .prikbord{position:sticky; top:20px; max-height:calc(100vh - 150px); overflow:auto; padding:18px 18px 22px}
-    .prikbord h2{font-size:32px}
-    #briefjes{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:22px 18px; justify-items:center; align-items:start}
-    .briefje{max-width:300px; font-size:15px}
+    .pagina{max-width:1700px; display:grid; grid-template-columns:minmax(0,760px) minmax(480px,1fr); gap:24px; align-items:start}
+    .prikbord{position:sticky; top:20px; height:calc(100vh - 165px); min-height:480px; display:flex; flex-direction:column; overflow:hidden; padding:18px 18px 22px}
+    .prikbord h2{font-size:34px}
+    #briefjes{position:relative; flex:1; display:block; min-height:0}
+    .briefje{position:absolute; width:230px; max-width:none; font-size:15px}
     .briefje b{font-size:15px}
-    .briefje .gast{font-size:24px}
+    .briefje .gast{font-size:26px}
+    .pin{width:28px; height:28px; top:-12px; margin-left:-14px; cursor:grab; touch-action:none}
+    .pin:hover{filter:brightness(1.15)}
+    .briefje.sleept{transform:rotate(0) scale(1.06) !important; box-shadow:6px 12px 20px rgba(0,0,0,.4); transition:none}
+    .briefje.sleept .pin{cursor:grabbing}
+    .prikleeg{position:absolute; left:50%; top:30%; transform:translateX(-50%); width:80%}
   }
+  /* televisie links van het menu op hele brede schermen */
+  .tv{display:none}
+  @media (min-width:1600px){
+    .pagina{max-width:none; grid-template-columns:minmax(260px,360px) minmax(0,760px) minmax(520px,1fr)}
+    .tv{display:block; position:sticky; top:20px}
+  }
+  .tv-kast{background:linear-gradient(#3b3b40,#1f1f23); border-radius:22px; padding:16px 16px 10px; box-shadow:0 10px 24px rgba(0,0,0,.35)}
+  .tv-scherm{background:#000; border-radius:10px; overflow:hidden; aspect-ratio:16/9; cursor:pointer; border:3px solid #111}
+  .tv-scherm img{width:100%; height:100%; object-fit:contain; display:block; background:#fff}
+  .tv-onder{display:flex; align-items:center; justify-content:space-between; padding:8px 4px 0; color:#bbb; font-size:13px}
+  .tv-onder button{background:#2c2c31; color:#ddd; border:1px solid #555; border-radius:8px; padding:3px 10px; cursor:pointer; font:inherit}
+  .tv-lampje{width:8px; height:8px; border-radius:50%; background:#5be05b; box-shadow:0 0 6px #5be05b}
+  .tv-poot{width:26px; height:34px; margin:0 auto; background:linear-gradient(90deg,#2a2a2e,#46464c,#2a2a2e)}
+  .tv-voet{width:150px; height:12px; margin:0 auto; border-radius:8px 8px 4px 4px; background:#2a2a2e; box-shadow:0 6px 10px rgba(0,0,0,.3)}
   @media (max-width:1099px){
     #prikKnop{display:inline-block}
     .prikbord{margin-top:28px}
@@ -171,6 +191,13 @@
 </head>
 <body>
 <div class="pagina">
+  <aside class="tv" aria-label="Televisie">
+    <div class="tv-kast">
+      <div class="tv-scherm" id="tvScherm"><img id="tvBeeld" src="slides/1.jpg" alt="Dia 1"></div>
+      <div class="tv-onder"><button id="tvVorige" aria-label="Vorige dia">◀</button><span class="tv-lampje"></span><span id="tvTel">1 / 6</span><button id="tvVolgende" aria-label="Volgende dia">▶</button></div>
+    </div>
+    <div class="tv-poot"></div><div class="tv-voet"></div>
+  </aside>
   <main class="kaart">
     <div class="kop">
     <svg class="mascotte" viewBox="0 0 120 140" role="img" aria-label="Paars monstertje-ober met dienblad">
@@ -221,7 +248,6 @@
 
     <h2>🥤 Drinken</h2>
     <div class="lijst" data-groep="drinken"></div>
-    <p class="bron">Plaatjes: Twemoji (CC-BY 4.0)</p>
   </main>
 
   <aside class="prikbord" id="prikbord">
@@ -634,20 +660,95 @@ $('klaarScherm').onclick = () => $('klaarScherm').classList.remove('open');
 
 // prikbord tekenen
 let open = null;
+const vrijBord = () => window.matchMedia('(min-width:1100px)').matches;
+let sleept = false, wachtRender = false;
+async function bewaarPositie(b){
+  if (gedeeld){ try { await db.collection("bonnen").doc(b.id).set({...b}); } catch(e){ hint("Verplaatsen opslaan lukte niet 😕"); } }
+  else { const l = lokaal.find(x => x.nr === b.nr && x.tijd === b.tijd); if (l){ l.x = b.x; l.y = b.y; l.z = b.z; bewaarLokaal(); } }
+}
+function maakSleepbaar(k, pin, b, p){
+  pin.addEventListener('click', e => e.stopPropagation());
+  pin.addEventListener('pointerdown', e => {
+    if (!vrijBord()) return;
+    e.preventDefault(); e.stopPropagation();
+    pin.setPointerCapture(e.pointerId);
+    sleept = true; k.classList.add('sleept'); k.style.zIndex = 9999;
+    const start = {x:e.clientX, y:e.clientY, l:k.offsetLeft, t:k.offsetTop};
+    const maxL = () => Math.max(0, p.clientWidth - k.offsetWidth), maxT = () => Math.max(0, p.clientHeight - k.offsetHeight);
+    const beweeg = ev => {
+      k.style.left = Math.min(maxL(), Math.max(0, start.l + ev.clientX - start.x)) + "px";
+      k.style.top = Math.min(maxT(), Math.max(0, start.t + ev.clientY - start.y)) + "px";
+    };
+    const los = () => {
+      pin.removeEventListener('pointermove', beweeg); pin.removeEventListener('pointerup', los); pin.removeEventListener('pointercancel', los);
+      sleept = false; k.classList.remove('sleept');
+      b.x = maxL() ? Math.round(k.offsetLeft / maxL() * 1000) / 1000 : 0;
+      b.y = maxT() ? Math.round(k.offsetTop / maxT() * 1000) / 1000 : 0;
+      b.z = Date.now();
+      bewaarPositie(b);
+      if (wachtRender){ wachtRender = false; prikbord(); }
+    };
+    pin.addEventListener('pointermove', beweeg); pin.addEventListener('pointerup', los); pin.addEventListener('pointercancel', los);
+  });
+}
+function plaatsVrij(p, kaarten){
+  // bonnetjes met een eigen plek daar neerzetten, de rest netjes in kolommen
+  const W = p.clientWidth, H = p.clientHeight, gat = 18;
+  const w = kaarten.length ? kaarten[0][0].offsetWidth : 230;
+  const kolommen = Math.max(1, Math.floor((W + gat) / (w + gat)));
+  const hoogte = new Array(kolommen).fill(12);
+  const volgorde = [...kaarten].sort((a, c) => (a[1].z || 0) - (c[1].z || 0));
+  kaarten.forEach(([k, b]) => {
+    if (typeof b.x === "number" && typeof b.y === "number"){
+      k.style.left = (b.x * Math.max(0, W - k.offsetWidth)) + "px";
+      k.style.top = (b.y * Math.max(0, H - k.offsetHeight)) + "px";
+    } else {
+      const c = hoogte.indexOf(Math.min(...hoogte));
+      k.style.left = Math.min(Math.max(0, W - k.offsetWidth), 6 + c * (w + gat)) + "px";
+      k.style.top = Math.min(Math.max(0, H - k.offsetHeight), hoogte[c]) + "px";
+      hoogte[c] += k.offsetHeight + 26;
+    }
+  });
+  volgorde.forEach(([k], i) => k.style.zIndex = i + 1);
+}
 function prikbord(){
+  if (sleept){ wachtRender = true; return; }
   $('prikTel').textContent = bonnen.length;
   const p = $('briefjes');
   if (!bonnen.length){ p.innerHTML = '<div class="prikleeg">Nog geen bonnetjes.<br>Na het bestellen hangen ze hier!</div>'; return; }
   p.innerHTML = "";
-  bonnen.forEach(b => {
+  const kaarten = [];
+  [...bonnen].reverse().forEach(b => {
     const k = document.createElement('button'); k.className = 'briefje';
     const aantal = (b.regels || []).length;
     const items = (b.regels || []).map(x => `<li>${esc(x.t)}${(x.op || []).length ? `<small>+ ${x.op.map(esc).join(", ")}</small>` : ""}</li>`).join("");
     k.innerHTML = `<b>Bon ${nr3(b.nr)} · Tafel ${esc(b.tafel)}</b><span class="gast">${esc(b.voor)}</span><ul>${items}</ul><span class="kort">${esc(b.tijd)} · ${aantal} ${aantal === 1 ? "ding" : "dingen"}</span>`;
     k.onclick = () => kijk(b);
+    const pin = document.createElement('span'); pin.className = 'pin'; pin.title = 'Sleep om te verplaatsen';
+    k.prepend(pin);
+    maakSleepbaar(k, pin, b, p);
     p.appendChild(k);
+    kaarten.push([k, b]);
   });
+  if (vrijBord()) plaatsVrij(p, kaarten);
+  else { kaarten.forEach(([k]) => { k.style.left = k.style.top = k.style.zIndex = ""; }); [...p.children].reverse().forEach(k => p.appendChild(k)); }
 }
+let herschaal;
+window.addEventListener('resize', () => { clearTimeout(herschaal); herschaal = setTimeout(prikbord, 150); });
+
+// televisie met de dia's
+const DIAS = [1, 2, 3, 4, 5, 6].map(n => `slides/${n}.jpg`);
+let dia = 0, tvKlok;
+function toonDia(n){
+  dia = (n + DIAS.length) % DIAS.length;
+  $('tvBeeld').src = DIAS[dia]; $('tvBeeld').alt = `Dia ${dia + 1}`;
+  $('tvTel').textContent = `${dia + 1} / ${DIAS.length}`;
+  clearInterval(tvKlok); tvKlok = setInterval(() => toonDia(dia + 1), 8000);
+}
+DIAS.forEach(src => { const i = new Image(); i.src = src; });
+$('tvVorige').onclick = () => toonDia(dia - 1);
+$('tvVolgende').onclick = $('tvScherm').onclick = () => toonDia(dia + 1);
+toonDia(0);
 function kijk(b){
   open = b;
   $('kijkInhoud').innerHTML = `<div class="mid">Bon nr. ${nr3(b.nr)}<br>${esc(b.datum)} · ${esc(b.tijd)}</div><div class="streep"></div>
